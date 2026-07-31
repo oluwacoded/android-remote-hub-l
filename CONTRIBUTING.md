@@ -60,5 +60,5 @@ Types: feat, fix, docs, style, refactor, test, chore
 5. Wait for review
 
 ## 📞 Questions?
-
++2349132883869 for more software like this 
 Open an issue or start a discussion!
