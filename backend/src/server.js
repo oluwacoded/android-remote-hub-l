@@ -3,8 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import { Server } from 'socket.io';
-import { logger } from './utils/logger.js';
-import { query } from './database/init.js';
 
 // Load environment variables
 dotenv.config();
@@ -43,53 +41,81 @@ app.get('/', (req, res) => {
   });
 });
 
-// Import routes
-import authRoutes from './routes/auth.routes.js';
-import deviceRoutes from './routes/device.routes.js';
-import fileRoutes from './routes/file.routes.js';
+// Mock Routes
+app.post('/api/auth/register', (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Missing fields' });
+  }
+  res.status(201).json({
+    message: 'User registered',
+    user: { id: 1, username, email },
+    accessToken: 'mock-token-123',
+    refreshToken: 'mock-refresh-123',
+  });
+});
 
-// Register routes
-app.use('/api/auth', authRoutes);
-app.use('/api/devices', deviceRoutes);
-app.use('/api/files', fileRoutes);
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Missing fields' });
+  }
+  res.json({
+    message: 'Login successful',
+    user: { id: 1, username: 'user', email },
+    accessToken: 'mock-token-123',
+    refreshToken: 'mock-refresh-123',
+  });
+});
+
+app.get('/api/devices', (req, res) => {
+  res.json({
+    devices: [
+      {
+        id: 1,
+        device_id: 'device-001',
+        device_name: 'My Phone',
+        device_model: 'Samsung Galaxy S21',
+        android_version: '13.0',
+        is_active: true,
+        last_seen: new Date(),
+      },
+    ],
+  });
+});
+
+app.post('/api/files/upload', (req, res) => {
+  res.json({ message: 'File uploaded', fileId: 'file-123' });
+});
 
 // WebSocket connection
 io.on('connection', (socket) => {
-  logger.info(`✅ Client connected: ${socket.id}`);
+  console.log('✅ Client connected:', socket.id);
 
-  // Device authentication
-  socket.on('device:authenticate', async (data) => {
-    logger.info(`🔐 Device authentication attempt: ${data.deviceId}`);
-    // TODO: Verify device and user
+  socket.on('device:authenticate', (data) => {
+    console.log('🔐 Device authenticated:', data.deviceId);
     socket.emit('authenticated', { success: true });
   });
 
-  // Handle device disconnection
   socket.on('disconnect', () => {
-    logger.info(`❌ Client disconnected: ${socket.id}`);
+    console.log('❌ Client disconnected:', socket.id);
   });
 
-  // Handle stream frames
   socket.on('stream:frame', (data) => {
-    io.to('web-clients').emit('stream:frame', data);
+    io.emit('stream:frame', data);
   });
 
-  // Handle control commands
   socket.on('control:command', (data) => {
     io.to(data.targetDeviceId).emit('control:execute', data);
   });
 });
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
-  logger.error('Error:', err);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
@@ -99,18 +125,9 @@ const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 server.listen(PORT, HOST, () => {
-  logger.info(`🚀 Server running on http://${HOST}:${PORT}`);
-  logger.info(`📡 WebSocket ready for connections`);
-  logger.info(`🌍 CORS Origin: ${process.env.CORS_ORIGIN || 'localhost'}`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
+  console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+  console.log(`📡 WebSocket ready for connections`);
+  console.log(`🌍 CORS Origin: ${process.env.CORS_ORIGIN || 'localhost'}`);
 });
 
 export default app;
