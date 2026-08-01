@@ -1,43 +1,27 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
-export const useAuthStore = create(
-  persist(
-    (set, get) => ({
-      token: null,
-      refreshToken: null,
-      user: null,
-      isLoading: false,
-      error: null,
+const useAuthStore = create((set) => ({
+  token: localStorage.getItem('token') || null,
+  refreshToken: localStorage.getItem('refreshToken') || null,
+  user: JSON.parse(localStorage.getItem('user')) || null,
 
-      setToken: (token, refreshToken) => set({ token, refreshToken }),
-      setUser: (user) => set({ user }),
-      setLoading: (isLoading) => set({ isLoading }),
-      setError: (error) => set({ error }),
-      clearError: () => set({ error: null }),
+  setToken: (accessToken, refreshToken) => {
+    localStorage.setItem('token', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    set({ token: accessToken, refreshToken });
+  },
 
-      logout: () => {
-        set({ token: null, refreshToken: null, user: null });
-        localStorage.removeItem('authStore');
-      },
+  setUser: (user) => {
+    localStorage.setItem('user', JSON.stringify(user));
+    set({ user });
+  },
 
-      initializeAuth: () => {
-        const stored = localStorage.getItem('authStore');
-        if (stored) {
-          const { state } = JSON.parse(stored);
-          if (state.token) {
-            set({ token: state.token, refreshToken: state.refreshToken, user: state.user });
-          }
-        }
-      },
-    }),
-    {
-      name: 'authStore',
-      partialize: (state) => ({
-        token: state.token,
-        refreshToken: state.refreshToken,
-        user: state.user,
-      }),
-    }
-  )
-);
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    set({ token: null, refreshToken: null, user: null });
+  },
+}));
+
+export { useAuthStore };
